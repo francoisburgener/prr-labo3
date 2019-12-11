@@ -112,13 +112,6 @@ func (n *Network) emit(msg []byte) {
 				log.Fatal("Network error: Writing error ",err)
 			}
 
-			//Set the deadline
-			err2 := conn.SetReadDeadline(time.Now().Add(time.Second * 2))
-			if err2 != nil{
-				log.Println("Timeout",err2)
-				continue
-			}
-
 			n.readACK(conn)
 		}
 	}
@@ -128,11 +121,18 @@ func (n *Network) readACK(conn net.Conn) {
 	// Make a buffer to hold incoming data.
 	buf := make([]byte, 1024)
 
-	// Read the incoming connection into the buffer.
-	l, err := conn.Read(buf)
-	if err != nil {
-		log.Println("Network error: Error reading", err.Error())
+	//Set the deadline
+	err := conn.SetReadDeadline(time.Now().Add(time.Second * 2))
+	if err != nil{
+		log.Println("Timeout",err)
+		return
 	}
+
+	// Read the incoming connection into the buffer.
+	l, _ := conn.Read(buf)
+	/*if err != nil {
+		log.Println("Network error: Error reading", err.Error())
+	}*/
 
 	s := bufio.NewScanner(bytes.NewReader(buf[0:l]))
 
