@@ -14,12 +14,12 @@ package network
 import (
 	"bufio"
 	"bytes"
-	"io"
+	"fmt"
 	"log"
 	"net"
 	"prr-labo3/labo3/config"
+	"prr-labo3/labo3/network/messages"
 	"prr-labo3/labo3/utils"
-	"prr-labo3/labo3/visit"
 	"time"
 )
 
@@ -41,11 +41,11 @@ func (n *Network) initServ() {
 	addr := utils.AddressByID(n.id)
 	conn, err := net.ListenPacket("udp", addr)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Network error: Initialisation failed",err)
 	}
 	defer conn.Close()
 
-	go n.handleConn(conn)
+	n.handleConn(conn)
 }
 
 func (n *Network) handleConn(conn net.PacketConn) {
@@ -53,7 +53,7 @@ func (n *Network) handleConn(conn net.PacketConn) {
 	for {
 		l, cliAddr, err := conn.ReadFrom(buf)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Network error: Reading error ",err)
 		}
 		s := bufio.NewScanner(bytes.NewReader(buf[0:l]))
 		for s.Scan() {
@@ -64,47 +64,61 @@ func (n *Network) handleConn(conn net.PacketConn) {
 	}
 }
 
-func (n *Network) EmitNotif(array []visit.Visit){
-
+func (n *Network) EmitNotif(_map map[uint16]uint16){
+	notif := messages.MessageNotif{_map}
+	msg := utils.EncodeMessageNotif(notif)
+	buf := utils.InitMessage([]byte(config.NotifMessage),msg)
+	n.emit(buf)
 }
 
-func (n *Network) EmitResult(id uint16){
-	msg := utils.InitMessage(id,[]byte(config.ResultMessage))
-	n.emit(msg)
+func (n *Network) EmitResult(_map map[uint16]bool){
+	fmt.Println(_map)
+	result := messages.MessageResult{_map}
+	msg := utils.EncodeMessageResult(result)
+	buf := utils.InitMessage([]byte(config.ResultMessage),msg)
+	n.emit(buf)
 }
 
 func (n *Network) emitACK(conn net.PacketConn, cliAddr net.Addr) {
-	msg := utils.InitMessage(n.id,[]byte(config.AckMessage))
-	if _, err := conn.WriteTo(msg, cliAddr); err != nil {
-		log.Fatal(err)
+	ack := messages.Message{n.id}
+	msg := utils.EncodeMessage(ack)
+	buf := utils.InitMessage([]byte(config.AckMessage),msg)
+
+	if _, err := conn.WriteTo(buf, cliAddr); err != nil {
+		log.Fatal("Network error: Writing error ",err)
 	}
 }
 
 func (n *Network) EmitEcho() {
-	msg := utils.InitMessage(n.id,[]byte(config.EchoMessage))
-	n.emit(msg)
+	echo := messages.Message{n.id}
+	msg := utils.EncodeMessage(echo)
+	buf := utils.InitMessage([]byte(config.EchoMessage),msg)
+	n.emit(buf)
 }
 
 func (n *Network) emit(msg []byte) {
 
 	for i:= n.id; i < n.N + n.id; i++{
-		id := (n.id + 1) % n.N
-
+		id := (i + 1) % n.N
 		if id != n.id{
 			addr := utils.AddressByID(id)
 			conn,err := net.Dial("udp",addr)
 			if err != nil {
-				log.Printf("The processus %d is not alive",id)
+				log.Printf("The processus %d is not alive ",id)
 			}
 
-			mustCopy(conn,bytes.NewReader(msg))
+			_, err = conn.Write(msg)
+			if err != nil {
+				log.Fatal("Network error: Writing error ",err)
+			}
 
 			//Set the deadline
 			err2 := conn.SetReadDeadline(time.Now().Add(time.Second * 2))
 			if err2 != nil{
-				log.Println("Timeout")
+				log.Println("Timeout",err2)
 				continue
 			}
+
 			n.readACK(conn)
 		}
 	}
@@ -117,30 +131,37 @@ func (n *Network) readACK(conn net.Conn) {
 	// Read the incoming connection into the buffer.
 	l, err := conn.Read(buf)
 	if err != nil {
-		log.Fatal("Network error: Error reading:", err.Error())
+		log.Println("Network error: Error reading", err.Error())
 	}
 
 	s := bufio.NewScanner(bytes.NewReader(buf[0:l]))
 
 	for s.Scan(){
-		n.decodeMessage(s.Bytes())
+		buf := s.Bytes()
+		if string(buf[0:3]) == config.AckMessage{
+			msg := utils.DecodeMessage(buf[3:])
+			log.Println("Decode : ",string(buf[0:3]),"-",msg.Id)
+		}
 	}
 
 }
 
 func (n *Network) decodeMessage(buf []byte) {
-	
-}
 
+	_type := string(buf[0:3])
 
-func mustCopy(dst io.Writer, src io.Reader) {
-	if _, err := io.Copy(dst, src); err != nil {
-		log.Fatal(err)
+	switch _type {
+	case config.EchoMessage:
+		msg := utils.DecodeMessage(buf[3:])
+		log.Println("Decode",_type,"-",msg.Id)
+	case config.ResultMessage:
+		msg := utils.DecodeMessageResult(buf[3:])
+		log.Println("Decode",_type,"-",msg.Map)
+	case config.NotifMessage:
+		msg := utils.DecodeMessageNotif(buf[3:])
+		log.Println("Decode",_type,"-",msg.Map)
+	default:
+		log.Println("Network: Incorrect type message !")
 	}
-}
-
-
-
-func main() {
-
+	
 }

@@ -12,7 +12,7 @@ package config
 
 const (
 	ADDR = "127.0.0.1"
-	PORT = 3000
+	PORT = 6000
 	NotifMessage = "NOT"
 	ResultMessage = "RES"
 	AckMessage = "ACK"

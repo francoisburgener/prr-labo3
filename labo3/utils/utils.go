@@ -1,8 +1,10 @@
 package utils
 
 import (
-	"encoding/binary"
+	"bytes"
+	"encoding/gob"
 	"prr-labo3/labo3/config"
+	"prr-labo3/labo3/network/messages"
 	"strconv"
 )
 
@@ -16,45 +18,53 @@ func AddressByID(id uint16) string{
 	return config.ADDR + ":" + strconv.Itoa(int(port))
 }
 
-/**
- * Method to convert an unint16 in byte array
- * @param value we want to update
- * @return the value converted in byte array
- */
-func uint16ToByteArray(i uint16) []byte{
-	buf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(buf, i)
-	return buf
+func InitMessage(_type []byte, msg []byte) []byte{
+	return append(_type,msg...)
 }
 
-/**
- * Method to convert a byte array to unint16
- * @param buf we want to convert
- * @return the value in uint16
- */
-func ConverByteArrayToUint16(buf []byte) uint16{
-	return binary.LittleEndian.Uint16(buf)
+func EncodeMessage(msg messages.Message) []byte {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	encoder.Encode(msg)
+
+	return buf.Bytes()
 }
 
-/**
- * Method to init a message
- * @param id of the processus
- * @return _type of the message (ACK, RES, ECH)
- */
-func InitMessage(id uint16,_type []byte) []byte{
-	var buf []byte
+func EncodeMessageResult(msg messages.MessageResult) []byte {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	encoder.Encode(msg)
 
-	_value := uint16ToByteArray(id)
-
-	buf = append(buf, _type...)
-	buf = append(buf, _value...)
-	buf = append(buf, '\n')
-
-	return buf
+	return buf.Bytes()
 }
 
-func initMessageList() []byte{
-	var buf []byte
+func EncodeMessageNotif(msg messages.MessageNotif) []byte {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	encoder.Encode(msg)
 
-	return buf
+	return buf.Bytes()
 }
+
+func DecodeMessage(buf []byte)  messages.Message{
+	var msg messages.Message
+	decoder := gob.NewDecoder(bytes.NewReader(buf))
+	decoder.Decode(&msg)
+	return msg
+
+}
+
+func DecodeMessageResult(buf []byte)  messages.MessageResult{
+	var msg messages.MessageResult
+	decoder := gob.NewDecoder(bytes.NewReader(buf))
+	decoder.Decode(&msg)
+	return msg
+}
+
+func DecodeMessageNotif(buf []byte) messages.MessageNotif{
+	var msg messages.MessageNotif
+	decoder := gob.NewDecoder(bytes.NewReader(buf))
+	decoder.Decode(&msg)
+	return msg
+}
+
