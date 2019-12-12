@@ -10,6 +10,8 @@
 */
 package config
 
+import "time"
+
 const (
 	ADDR = "127.0.0.1"
 	PORT = 6000
@@ -17,5 +19,6 @@ const (
 	ResultMessage = "RES"
 	AckMessage = "ACK"
 	EchoMessage = "ECH"
+	TIME_OUT = time.Second * 2
 
 )

@@ -99,6 +99,7 @@ func (n *Network) EmitEcho() {
 func (n *Network) emit(msg []byte) {
 
 	for i:= n.id; i < n.N + n.id; i++{
+		receivedACK := false
 		id := (i + 1) % n.N
 		if id != n.id{
 			addr := utils.AddressByID(id)
@@ -112,21 +113,27 @@ func (n *Network) emit(msg []byte) {
 				log.Fatal("Network error: Writing error ",err)
 			}
 
-			n.readACK(conn)
+			channel := make(chan bool, 1)
+			go n.readACK(conn,channel)
+
+			select {
+			case receivedACK = <-channel:
+				fmt.Println("Received ACK")
+			case <-time.After(config.TIME_OUT):
+				fmt.Println("timeout")
+				continue
+			}
+
+			if receivedACK{
+				break
+			}
 		}
 	}
 }
 
-func (n *Network) readACK(conn net.Conn) {
+func (n *Network) readACK(conn net.Conn, channel chan bool){
 	// Make a buffer to hold incoming data.
 	buf := make([]byte, 1024)
-
-	//Set the deadline
-	err := conn.SetReadDeadline(time.Now().Add(time.Second * 2))
-	if err != nil{
-		log.Println("Timeout",err)
-		return
-	}
 
 	// Read the incoming connection into the buffer.
 	l, _ := conn.Read(buf)
@@ -141,9 +148,9 @@ func (n *Network) readACK(conn net.Conn) {
 		if string(buf[0:3]) == config.AckMessage{
 			msg := utils.DecodeMessage(buf[3:])
 			log.Println("Decode : ",string(buf[0:3]),"-",msg.Id)
+			channel <- true
 		}
 	}
-
 }
 
 func (n *Network) decodeMessage(buf []byte) {
