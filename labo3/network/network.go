@@ -72,7 +72,6 @@ func (n *Network) EmitNotif(_map map[uint16]uint16){
 }
 
 func (n *Network) EmitResult(_map map[uint16]bool){
-	fmt.Println(_map)
 	result := messages.MessageResult{_map}
 	msg := utils.EncodeMessageResult(result)
 	buf := utils.InitMessage([]byte(config.ResultMessage),msg)
@@ -99,37 +98,47 @@ func (n *Network) EmitEcho() {
 func (n *Network) emit(msg []byte) {
 
 	for i:= n.id; i < n.N + n.id; i++{
-		receivedACK := false
-		id := (i + 1) % n.N
-		if id != n.id{
-			addr := utils.AddressByID(id)
-			conn,err := net.Dial("udp",addr)
-			if err != nil {
-				log.Printf("The processus %d is not alive ",id)
-			}
 
-			_, err = conn.Write(msg)
-			if err != nil {
-				log.Fatal("Network error: Writing error ",err)
-			}
+		id := (i + 1) % n.N // id of the next processus
+		channel := make(chan bool, 1) // channel to know if we received an ACK
+		receivedACK := false //Boolean to stop the loop if we received an ACK
 
-			channel := make(chan bool, 1)
-			go n.readACK(conn,channel)
 
-			select {
-			case receivedACK = <-channel:
-				fmt.Println("Received ACK")
-			case <-time.After(config.TIME_OUT):
-				fmt.Println("timeout")
-				continue
-			}
+		//Emit message to the next processus
+		n.emitNext(msg,id,channel)
 
-			if receivedACK{
-				break
-			}
+		select {
+		case receivedACK = <-channel: //We received an ACK
+			fmt.Println("Received ACK")
+		case <-time.After(config.TIME_OUT): // Timeout
+			fmt.Println("Timeout")
+			continue
+		}
+
+		//If we received an ACK, we stop the loop
+		if receivedACK{
+			break
 		}
 	}
 }
+
+func (n *Network) emitNext(msg []byte,id uint16, channel chan bool) {
+	addr := utils.AddressByID(id)
+	conn,err := net.Dial("udp",addr)
+	if err != nil {
+		log.Printf("The processus %d is not alive ",id)
+	}
+
+	_, err = conn.Write(msg)
+	if err != nil {
+		log.Fatal("Network error: Writing error ",err)
+	}
+
+	go n.readACK(conn,channel)
+
+}
+
+
 
 func (n *Network) readACK(conn net.Conn, channel chan bool){
 	// Make a buffer to hold incoming data.
@@ -161,12 +170,15 @@ func (n *Network) decodeMessage(buf []byte) {
 	case config.EchoMessage:
 		msg := utils.DecodeMessage(buf[3:])
 		log.Println("Decode",_type,"-",msg.Id)
+		//TODO
 	case config.ResultMessage:
 		msg := utils.DecodeMessageResult(buf[3:])
 		log.Println("Decode",_type,"-",msg.Map)
+		//TODO
 	case config.NotifMessage:
 		msg := utils.DecodeMessageNotif(buf[3:])
 		log.Println("Decode",_type,"-",msg.Map)
+		//TODO
 	default:
 		log.Println("Network: Incorrect type message !")
 	}
