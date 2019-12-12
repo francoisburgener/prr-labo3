@@ -1,6 +1,6 @@
 /*
  -----------------------------------------------------------------------------------
- Lab 		 : 01
+ Lab 		 : 03
  File    	 : network.go
  Authors   	 : François Burgener - Tiago P. Quinteiro
  Date        : 10.12.19
@@ -28,6 +28,11 @@ type Network struct {
 	N  uint16
 }
 
+/**
+ * Method to init our Network
+ * @param id of the processus
+ * @param N number of processus
+ */
 func (n *Network) Init(id uint16, N uint16) {
 	n.id = id
 	n.N = N
@@ -37,6 +42,9 @@ func (n *Network) Init(id uint16, N uint16) {
 	}()
 }
 
+/**
+ * Method to init our udp server
+ */
 func (n *Network) initServ() {
 	addr := utils.AddressByID(n.id)
 	conn, err := net.ListenPacket("udp", addr)
@@ -48,6 +56,11 @@ func (n *Network) initServ() {
 	n.handleConn(conn)
 }
 
+/**
+ * Method to init our Network
+ * @param id of the processus
+ * @param N number of processus
+ */
 func (n *Network) handleConn(conn net.PacketConn) {
 	buf := make([]byte, 1024)
 	for {
