@@ -1,25 +1,24 @@
 /*
  -----------------------------------------------------------------------------------
  Lab 		 : 03
- File    	 : config.go
+ File    	 : messages.go
  Authors   	 : François Burgener - Tiago P. Quinteiro
  Date        : 10.12.19
 
- Goal        : Config file for the network layer
+ Goal        : Our different struct message
  -----------------------------------------------------------------------------------
 */
 
-package config
+package messages
 
-import "time"
+type Message struct {
+	Id uint16
+}
 
-const (
-	ADDR = "127.0.0.1"
-	PORT = 6000
-	NotifMessage = "NOT"
-	ResultMessage = "RES"
-	AckMessage = "ACK"
-	EchoMessage = "ECH"
-	TIME_OUT = time.Second * 2
+type MessageResult struct {
+	Map map[uint16]bool
+}
 
-)
+type MessageNotif struct {
+	Map map[uint16]uint16
+}

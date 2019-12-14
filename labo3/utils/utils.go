@@ -1,8 +1,20 @@
+/*
+ -----------------------------------------------------------------------------------
+ Lab 		 : 03
+ File    	 : utils.go
+ Authors   	 : François Burgener - Tiago P. Quinteiro
+ Date        : 10.12.19
+
+ Goal        : Utility methods for conversions of the network layer
+ -----------------------------------------------------------------------------------
+*/
 package utils
 
 import (
-	"encoding/binary"
+	"bytes"
+	"encoding/gob"
 	"prr-labo3/labo3/config"
+	"prr-labo3/labo3/network/messages"
 	"strconv"
 )
 
@@ -16,42 +28,90 @@ func AddressByID(id uint16) string{
 	return config.ADDR + ":" + strconv.Itoa(int(port))
 }
 
+
 /**
- * Method to convert an unint32 in byte array
- * @param value we want to update
- * @return the value converted in byte array
+ * Method to initialize a message
+ * @param _type is the type of the message (ACK,ECH,NOT,RES)
+ * @param msg is our message
+ * @return the concatanation of _type + msg
  */
-func uint32ToByteArray(i uint32) []byte{
-	buf := make([]byte, 4)
-	binary.LittleEndian.PutUint32(buf, i)
-	return buf
+func InitMessage(_type []byte, msg []byte) []byte{
+	return append(_type,msg...)
 }
 
 /**
- * Method to convert an unint16 in byte array
- * @param value we want to update
- * @return the value converted in byte array
+ * Method to encode a Message of type ACK or ECH
+ * @param msg our message
+ * @return our message in byte array
  */
-func uint16ToByteArray(i uint16) []byte{
-	buf := make([]byte, 2)
-	binary.LittleEndian.PutUint16(buf, i)
-	return buf
+func EncodeMessage(msg messages.Message) []byte {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	encoder.Encode(msg)
+
+	return buf.Bytes()
 }
 
 /**
- * Method to convert a byte array to unint32
- * @param buf we want to convert
- * @return the value in uint32
+ * Method to encode a Message of type RES
+ * @param msg our MessageResult
+ * @return our MessageResult in byte array
  */
-func ConverByteArrayToUint32(buf []byte) uint32{
-	return binary.LittleEndian.Uint32(buf)
+func EncodeMessageResult(msg messages.MessageResult) []byte {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	encoder.Encode(msg)
+
+	return buf.Bytes()
 }
 
 /**
- * Method to convert a byte array to unint16
- * @param buf we want to convert
- * @return the value in uint16
+ * Method to encode a Message of type NOT
+ * @param msg our MessageNotif
+ * @return our MessageNotif in byte array
  */
-func ConverByteArrayToUint16(buf []byte) uint16{
-	return binary.LittleEndian.Uint16(buf)
+func EncodeMessageNotif(msg messages.MessageNotif) []byte {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	encoder.Encode(msg)
+
+	return buf.Bytes()
 }
+
+/**
+ * Method to decode a byte array to Message
+ * @param buf who containe our message
+ * @return Message
+ */
+func DecodeMessage(buf []byte)  messages.Message{
+	var msg messages.Message
+	decoder := gob.NewDecoder(bytes.NewReader(buf))
+	decoder.Decode(&msg)
+	return msg
+
+}
+
+/**
+ * Method to decode a byte array to MessageResult
+ * @param buf who containe our message
+ * @return MessageResult
+ */
+func DecodeMessageResult(buf []byte)  messages.MessageResult{
+	var msg messages.MessageResult
+	decoder := gob.NewDecoder(bytes.NewReader(buf))
+	decoder.Decode(&msg)
+	return msg
+}
+
+/**
+ * Method to decode a byte array to MessageNotif
+ * @param buf who containe our message
+ * @return MessageNotif
+ */
+func DecodeMessageNotif(buf []byte) messages.MessageNotif{
+	var msg messages.MessageNotif
+	decoder := gob.NewDecoder(bytes.NewReader(buf))
+	decoder.Decode(&msg)
+	return msg
+}
+
