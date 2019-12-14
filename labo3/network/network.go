@@ -23,6 +23,11 @@ import (
 	"time"
 )
 
+type Manager interface {
+	SubmitNotification(notifMap map[uint16]uint16)
+	SubmitResult(id uint16, resultMap map[uint16]bool)
+}
+
 type Network struct {
 	id uint16
 	N  uint16
