@@ -14,9 +14,7 @@ package manager
  * ENUM declaration of the states
  */
 const (
-	REST = iota
-	BUSY
-	NOTIFICATION
+	NOTIFICATION = iota
 	RESULT
 )
 
@@ -47,7 +45,7 @@ type Manager struct {
 }
 
 func (m *Manager) Init() {
-	m.state = REST
+	m.state = RESULT
 	go m.handler()
 }
 
@@ -110,9 +108,40 @@ func (m *Manager) handler() {
 	}
 }
 
-func (m *Manager) startElection(){
+// API
 
+/**
+ * Submits a Notification message to manager from network
+ */
+func (m *Manager) SubmitNotification(notifMap map[uint16]uint16) {
+	m.chanNotification <- notifMap
 }
+
+/**
+ * Submits a result message to manager from network
+ */
+func (m *Manager) SubmitResult(id uint16, resultMap map[uint16]bool) {
+	m.chanResult <- ResultMessage{
+		id:            id,
+		visitedResult: resultMap,
+	}
+}
+
+/**
+ * Get the elected id
+ */
+func (m *Manager) GetElected() uint16 {
+	m.startElection()
+	return <- m.chanGiveElection
+}
+
+/**
+ * Tells manager to start an election
+ */
+func (m *Manager) startElection(){
+	m.chanAskElection <- true
+}
+
 
 /**
  * @param m Map where you want to find max
