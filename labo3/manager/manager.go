@@ -20,14 +20,17 @@ const (
 	RESULT
 )
 
-type Void struct {}
-
 /**
  * Interface wanted for the Network
  */
 type Network interface {
 	EmitNotif(map[uint16]uint16)
-	EmitResult(uint16, map[uint16]Void)
+	EmitResult(uint16, map[uint16]bool)
+}
+
+type ResultMessage struct {
+	id uint16
+	visitedResult map[uint16]bool
 }
 
 type Manager struct {
@@ -37,9 +40,10 @@ type Manager struct {
 	state uint8 // TODO Maybe change this
 	elected uint16
 	network Network
-	chanElection chan bool
+	chanAskElection chan bool
+	chanGiveElection chan uint16
 	chanNotification chan map[uint16]uint16
-	chanResult chan map[uint16]Void
+	chanResult chan ResultMessage
 }
 
 func (m *Manager) Init() {
@@ -51,7 +55,7 @@ func (m *Manager) Init() {
 func (m *Manager) handler() {
 	for {
 		select {
-		case <- m.chanElection:
+		case <- m.chanAskElection:
 			l := make(map[uint16]uint16)
 			l[m.me] = m.aptitude
 
@@ -62,61 +66,57 @@ func (m *Manager) handler() {
 			if isInside {
 				m.elected = findMax(notifMap)
 
-				resultMap := make(map[uint16]Void)
-				resultMap[m.me] = Void{}
+				resultMap := make(map[uint16]bool)
+				resultMap[m.me] = true // TODO Could be void struct.
 
 				m.network.EmitResult(m.elected,resultMap)
 				m.state = RESULT
 			} else {
-				notifMap[m.me] = m.aptitude // Had myself in map
+				notifMap[m.me] = m.aptitude // Add myself in map
 				m.network.EmitNotif(notifMap)
 				m.state = NOTIFICATION
 			}
-		case resultMap := <- m.chanResult:
-			// TODO
+		case resultMessage := <- m.chanResult:
+			i := resultMessage.id
+			resultMap := resultMessage.visitedResult
+
 			_, isInside := resultMap[m.me] // Test if I'm here
 			if isInside {
+				// Nothing to do ¯\_(ツ)_/¯
+			} else if m.state == RESULT && m.elected != i {
+				// TODO this code is similar to another
+				l := make(map[uint16]uint16)
+				l[m.me] = m.aptitude
 
-			} else if m.state == NOTIFICATION{
+				m.network.EmitNotif(l)
+				m.state = NOTIFICATION
+			} else if m.state == NOTIFICATION {
+				m.elected = i
+
+				// TODO this code is similar to another
+				resultMap := make(map[uint16]bool)
+				resultMap[m.me] = true // TODO Could be void struct.
+
+				m.network.EmitResult(m.elected,resultMap)
+				m.state = RESULT
 			}
 
 		default:
+			if m.state == RESULT {
+				m.chanGiveElection <- m.elected
+			}
 
 		}
 	}
-
-	// 2. asKElected
-		/*
-		si (moi, monApt) ∈liste alors
-		élu := i tel que apti= max(aptj)
-		∀j dans liste
-		// max(i) arbitraire à égalité
-		envoie RESULTAT(élu,{moi})
-		état := résultat
-		sinon
-		envoie ANNONCE( {(moi,monApt)} ∪liste)
-		état := annonce
-		fin si
-		 */
-	// 3. Annonce list
-	// 4. Resultat (i, list)
-		/*
-		si moi ∈ liste alors état := non // fin
-		sinon si état = résultat et élu <> i alors
-		envoie ANNONCE({(moi,monApt)})
-		état := annonce
-		sinon si état = annonce alors
-		élu := i
-		envoie RESULTAT( élu, {moi} ∪ liste)
-		état := résultat
-		fin si
-		 */
 }
 
 func (m *Manager) startElection(){
 
 }
 
+/**
+ * @param m Map where you want to find max
+ */
 func findMax (m map[uint16]uint16) uint16 {
 	var id, max uint16 = 0, 0
 
