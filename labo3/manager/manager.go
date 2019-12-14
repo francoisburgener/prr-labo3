@@ -44,7 +44,11 @@ type Manager struct {
 	chanResult chan ResultMessage
 }
 
-func (m *Manager) Init() {
+func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
+	m.N = N
+	m.me = me
+	m.aptitude = aptitude
+	m.network = network
 	m.state = RESULT
 	go m.handler()
 }
