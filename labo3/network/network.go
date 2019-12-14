@@ -1,6 +1,6 @@
 /*
  -----------------------------------------------------------------------------------
- Lab 		 : 01
+ Lab 		 : 03
  File    	 : network.go
  Authors   	 : François Burgener - Tiago P. Quinteiro
  Date        : 10.12.19
