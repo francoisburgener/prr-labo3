@@ -23,7 +23,9 @@ type Task struct {
 	n Network
 }
 
-func (t *Task) Run() {
+func (t *Task) Run(manager Manager, network Network) {
+	t.m = manager
+	t.n = network
 	t.shouldRunElection = true
 
 	for {
