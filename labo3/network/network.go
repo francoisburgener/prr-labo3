@@ -109,10 +109,19 @@ func (n *Network) emitACK(conn net.PacketConn, cliAddr net.Addr) {
 }
 
 func (n *Network) EmitEcho(id uint16) {
+	channel := make(chan bool, 1) // channel to know if we received an ACK
 	echo := messages.Message{n.id}
 	msg := utils.EncodeMessage(echo)
 	buf := utils.InitMessage([]byte(config.EchoMessage),msg)
-	fmt.Println(buf)
+
+	go n.emitById(buf,id,channel)
+	
+	select {
+	case receivedACK := <-channel: //We received an ACK
+		fmt.Println("Received ACK",receivedACK)
+	case <-time.After(config.TIME_OUT): // Timeout
+		fmt.Println("Timeout")
+	}
 }
 
 func (n *Network) emit(msg []byte) {
