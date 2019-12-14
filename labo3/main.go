@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"prr-labo3/labo3/manager"
 	"prr-labo3/labo3/network"
 	"strconv"
 )
@@ -13,7 +14,8 @@ import (
 func main() {
 	id,N := argValue()
 	n := network.Network{}
-	n.Init(id,N)
+	m := manager.Manager{}
+	n.Init(id,N,&m)
 	console(&n)
 }
 
@@ -65,7 +67,7 @@ func console(n *network.Network) {
 		case "1":
 			n.EmitNotif(m)
 		case "2":
-			n.EmitResult(m2)
+			n.EmitResult(1,m2)
 		case "3":
 			n.EmitEcho()
 		default:

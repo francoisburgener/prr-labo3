@@ -199,11 +199,11 @@ func (n *Network) decodeMessage(buf []byte) {
 	case config.ResultMessage:
 		msg := utils.DecodeMessageResult(buf[3:])
 		log.Println("Decode",_type,"-",msg.Id,"-",msg.Map)
-		n.manager.SubmitResult(msg.Id,msg.Map)
+		//n.manager.SubmitResult(msg.Id,msg.Map)
 	case config.NotifMessage:
 		msg := utils.DecodeMessageNotif(buf[3:])
 		log.Println("Decode",_type,"-",msg.Map)
-		n.manager.SubmitNotification(msg.Map)
+		//n.manager.SubmitNotification(msg.Map)
 	default:
 		log.Println("Network: Incorrect type message !")
 	}
