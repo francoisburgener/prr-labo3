@@ -115,7 +115,7 @@ func (n *Network) EmitEcho(id uint16) {
 	buf := utils.InitMessage([]byte(config.EchoMessage),msg)
 
 	go n.emitById(buf,id,channel)
-	
+
 	select {
 	case receivedACK := <-channel: //We received an ACK
 		fmt.Println("Received ACK",receivedACK)
@@ -204,7 +204,6 @@ func (n *Network) decodeMessage(buf []byte) {
 	case config.EchoMessage:
 		msg := utils.DecodeMessage(buf[3:])
 		log.Println("Decode",_type,"-",msg.Id)
-		//TODO
 	case config.ResultMessage:
 		msg := utils.DecodeMessageResult(buf[3:])
 		log.Println("Decode",_type,"-",msg.Id,"-",msg.Map)
