@@ -31,6 +31,7 @@ type Manager interface {
 type Network struct {
 	id uint16
 	N  uint16
+	manager Manager
 }
 
 /**
@@ -38,9 +39,10 @@ type Network struct {
  * @param id of the processus
  * @param N number of processus
  */
-func (n *Network) Init(id uint16, N uint16) {
+func (n *Network) Init(id uint16, N uint16, manager Manager) {
 	n.id = id
 	n.N = N
+	n.manager = manager
 
 	go func() {
 		n.initServ()
@@ -89,8 +91,8 @@ func (n *Network) EmitNotif(_map map[uint16]uint16){
 	n.emit(buf)
 }
 
-func (n *Network) EmitResult(_map map[uint16]bool){
-	result := messages.MessageResult{_map}
+func (n *Network) EmitResult(id uint16,_map map[uint16]bool){
+	result := messages.MessageResult{id,_map}
 	msg := utils.EncodeMessageResult(result)
 	buf := utils.InitMessage([]byte(config.ResultMessage),msg)
 	n.emit(buf)
@@ -196,14 +198,13 @@ func (n *Network) decodeMessage(buf []byte) {
 		//TODO
 	case config.ResultMessage:
 		msg := utils.DecodeMessageResult(buf[3:])
-		log.Println("Decode",_type,"-",msg.Map)
-		//TODO
+		log.Println("Decode",_type,"-",msg.Id,"-",msg.Map)
+		n.manager.SubmitResult(msg.Id,msg.Map)
 	case config.NotifMessage:
 		msg := utils.DecodeMessageNotif(buf[3:])
 		log.Println("Decode",_type,"-",msg.Map)
-		//TODO
+		n.manager.SubmitNotification(msg.Map)
 	default:
 		log.Println("Network: Incorrect type message !")
 	}
-	
 }

@@ -16,6 +16,7 @@ type Message struct {
 }
 
 type MessageResult struct {
+	Id uint16
 	Map map[uint16]bool
 }
 
