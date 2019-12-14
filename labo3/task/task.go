@@ -1,5 +1,7 @@
 package task
 
+import "time"
+
 /**
  * Interface wanted for the Network
  */
@@ -28,7 +30,8 @@ func (t *Task) Run() {
 		if t.shouldRunElection {
 			t.currentElected = t.m.GetElected()
 			t.shouldRunElection = false
-		} else {
+		} else { // TODO is it correct?
+		time.Sleep(time.Second * 1)
 			if t.n.EmitEcho(t.currentElected) == false {
 				t.shouldRunElection = true
 			}
