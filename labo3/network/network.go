@@ -108,11 +108,11 @@ func (n *Network) emitACK(conn net.PacketConn, cliAddr net.Addr) {
 	}
 }
 
-func (n *Network) EmitEcho() {
+func (n *Network) EmitEcho(id uint16) {
 	echo := messages.Message{n.id}
 	msg := utils.EncodeMessage(echo)
 	buf := utils.InitMessage([]byte(config.EchoMessage),msg)
-	n.emit(buf)
+	fmt.Println(buf)
 }
 
 func (n *Network) emit(msg []byte) {
@@ -125,7 +125,7 @@ func (n *Network) emit(msg []byte) {
 
 
 		//Emit message to the next processus
-		n.emitNext(msg,id,channel)
+		n.emitById(msg,id,channel)
 
 		select {
 		case receivedACK = <-channel: //We received an ACK
@@ -142,7 +142,7 @@ func (n *Network) emit(msg []byte) {
 	}
 }
 
-func (n *Network) emitNext(msg []byte,id uint16, channel chan bool) {
+func (n *Network) emitById(msg []byte,id uint16, channel chan bool) {
 	add := utils.AddressByID(id)
 	addr,err := net.ResolveUDPAddr("udp",add)
 	if err != nil {
@@ -208,3 +208,5 @@ func (n *Network) decodeMessage(buf []byte) {
 		log.Println("Network: Incorrect type message !")
 	}
 }
+
+
