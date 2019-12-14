@@ -136,10 +136,15 @@ func (n *Network) emit(msg []byte) {
 }
 
 func (n *Network) emitNext(msg []byte,id uint16, channel chan bool) {
-	addr := utils.AddressByID(id)
-	conn,err := net.Dial("udp",addr)
+	add := utils.AddressByID(id)
+	addr,err := net.ResolveUDPAddr("udp",add)
 	if err != nil {
 		log.Printf("The processus %d is not alive ",id)
+	}
+
+	conn,err := net.DialUDP("udp",nil,addr)
+	if err != nil {
+		log.Println("Network error: Error dial", err.Error())
 	}
 
 	_, err = conn.Write(msg)
@@ -158,10 +163,10 @@ func (n *Network) readACK(conn net.Conn, channel chan bool){
 	buf := make([]byte, 1024)
 
 	// Read the incoming connection into the buffer.
-	l, _ := conn.Read(buf)
-	/*if err != nil {
-		log.Println("Network error: Error reading", err.Error())
-	}*/
+	l, err := conn.Read(buf)
+	if err != nil {
+		log.Println("Network error: Error reading", err.Error()) //TODO Check
+	}
 
 	s := bufio.NewScanner(bytes.NewReader(buf[0:l]))
 
