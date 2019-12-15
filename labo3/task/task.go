@@ -55,6 +55,7 @@ func (t *Task) Run(manager Manager, network Network) {
 		if !hasAnswered {
 			if t.debug {
 				log.Println("Task : no answer :(")
+				log.Println("Task : Running an election")
 			}
 
 			t.m.RunElection()
