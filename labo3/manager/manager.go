@@ -81,6 +81,7 @@ func (m *Manager) handler() {
 			m.state = NOTIFICATION
 			m.asked = true
 		case notifMap := <- m.chanNotification:
+			log.Println("Manager : Received notification : ",notifMap, " me:",m.me)
 			_, isInside := notifMap[m.me] // Test if I'm here
 			if isInside {
 				m.elected = findMax(notifMap)
@@ -120,7 +121,6 @@ func (m *Manager) handler() {
 				m.state = RESULT
 			}
 		default:
-			log.Println("Manager : Default")
 			if m.state == RESULT && m.asked == true {
 				log.Println("Manager : Send elected processus")
 				m.chanGiveElection <- m.elected
