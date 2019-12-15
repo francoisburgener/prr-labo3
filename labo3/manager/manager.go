@@ -16,7 +16,8 @@ import "log"
  * ENUM declaration of the states
  */
 const (
-	NOTIFICATION = iota
+	REST = iota
+	NOTIFICATION
 	RESULT
 )
 
@@ -52,7 +53,7 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	m.me = me
 	m.aptitude = aptitude
 	m.network = network
-	m.state = RESULT
+	m.state = REST
 	go m.handler()
 }
 
