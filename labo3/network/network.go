@@ -14,7 +14,6 @@ package network
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"log"
 	"net"
 	"prr-labo3/labo3/config"
@@ -32,6 +31,7 @@ type Network struct {
 	id uint16
 	N  uint16
 	manager Manager
+	Debug bool
 }
 
 /**
@@ -86,29 +86,38 @@ func (n *Network) handleConn(conn net.PacketConn) {
 }
 
 func (n *Network) EmitNotif(_map map[uint16]uint16){
-	log.Println("Network : Emit notification : ",_map)
 	notif := messages.MessageNotif{_map}
 	msg := utils.EncodeMessageNotif(notif)
 	buf := utils.InitMessage([]byte(config.NotifMessage),msg)
 	n.emit(buf)
+
+	if n.Debug{
+		log.Println("Network : Emit notification : ",_map)
+	}
 }
 
 func (n *Network) EmitResult(id uint16,_map map[uint16]bool){
-	log.Println("Network : Emit result : id-",id," map-",_map)
 	result := messages.MessageResult{id,_map}
 	msg := utils.EncodeMessageResult(result)
 	buf := utils.InitMessage([]byte(config.ResultMessage),msg)
 	n.emit(buf)
+
+	if n.Debug{
+		log.Println("Network : Emit result : id-",id," map-",_map)
+	}
 }
 
 func (n *Network) emitACK(conn net.PacketConn, cliAddr net.Addr) {
-	log.Println("Network : Emit ACK")
 	ack := messages.Message{n.id}
 	msg := utils.EncodeMessage(ack)
 	buf := utils.InitMessage([]byte(config.AckMessage),msg)
 
 	if _, err := conn.WriteTo(buf, cliAddr); err != nil {
 		log.Fatal("Network error: Writing error ",err)
+	}
+
+	if n.Debug{
+		log.Println("Network : Emit ACK")
 	}
 }
 
@@ -145,7 +154,7 @@ func (n *Network) emit(msg []byte) {
 		select {
 		case receivedACK = <-channel: //We received an ACK
 		case <-time.After(config.TIME_OUT): // Timeout
-			fmt.Println("Network : Timeout")
+			log.Println("Network : Timeout")
 			continue
 		}
 
@@ -195,8 +204,12 @@ func (n *Network) readACK(conn net.Conn, channel chan bool){
 		buf := s.Bytes()
 		if string(buf[0:3]) == config.AckMessage{
 			msg := utils.DecodeMessage(buf[3:])
-			log.Println("Decode : ",string(buf[0:3]),"-",msg.Id)
+
 			channel <- true
+
+			if n.Debug{
+				log.Println("Decode : ",string(buf[0:3]),"-",msg.Id)
+			}
 		}
 	}
 }
@@ -208,14 +221,25 @@ func (n *Network) decodeMessage(buf []byte) {
 	switch _type {
 	case config.EchoMessage:
 		msg := utils.DecodeMessage(buf[3:])
-		log.Println("Decode",_type,"-",msg.Id)
+
+		if n.Debug{
+			log.Println("Decode",_type,"-",msg.Id)
+		}
 	case config.ResultMessage:
 		msg := utils.DecodeMessageResult(buf[3:])
-		log.Println("Decode",_type,"-",msg.Id,"-",msg.Map)
+
+		if n.Debug{
+			log.Println("Decode",_type,"-",msg.Id,"-",msg.Map)
+		}
+
 		n.manager.SubmitResult(msg.Id,msg.Map)
 	case config.NotifMessage:
 		msg := utils.DecodeMessageNotif(buf[3:])
-		log.Println("Decode",_type,"-",msg.Map)
+
+		if n.Debug{
+			log.Println("Decode",_type,"-",msg.Map)
+		}
+
 		n.manager.SubmitNotification(msg.Map)
 	default:
 		log.Println("Network: Incorrect type message !")
