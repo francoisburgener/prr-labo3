@@ -39,6 +39,7 @@ func (t *Task) Run(manager Manager, network Network) {
 
 		log.Println("Task : get the elected processus")
 		t.currentElected = t.m.GetElected()
+		log.Println("Task : current elected:",t.currentElected)
 		hasAnswered := t.n.EmitEcho(t.currentElected)
 		if !hasAnswered {
 			t.m.RunElection()
