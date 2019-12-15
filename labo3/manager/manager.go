@@ -41,7 +41,6 @@ type Manager struct {
 	aptitude uint16
 	state uint8 // TODO Maybe change this
 	elected uint16
-	asked bool
 	network Network
 	chanAskElection chan bool
 	chanGiveElection chan uint16
@@ -56,7 +55,6 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	m.aptitude = aptitude
 	m.network = network
 	m.state = RESULT
-	m.asked = false
 
 	//Channels
 	m.chanAskElection = make(chan bool)
@@ -79,7 +77,6 @@ func (m *Manager) handler() {
 			log.Println("Manager : Emit notification")
 			m.network.EmitNotif(l)
 			m.state = NOTIFICATION
-			m.asked = true
 		case notifMap := <- m.chanNotification:
 			log.Println("Manager : Received notification : ",notifMap, " me:",m.me)
 			_, isInside := notifMap[m.me] // Test if I'm here
@@ -121,10 +118,9 @@ func (m *Manager) handler() {
 				m.state = RESULT
 			}
 		default:
-			if m.state == RESULT && m.asked == true {
+			if m.state == RESULT {
 				log.Println("Manager : Send elected processus")
 				m.chanGiveElection <- m.elected
-				m.asked = false
 			}
 		}
 	}
@@ -150,20 +146,19 @@ func (m *Manager) SubmitResult(id uint16, resultMap map[uint16]bool) {
 }
 
 /**
+ * Tells manager to start an election
+ */
+func (m *Manager) RunElection() {
+	log.Println("Manager : Start election")
+	m.chanAskElection <- true
+}
+
+/**
  * Get the elected id
  */
 func (m *Manager) GetElected() uint16 {
 	log.Println("Manager : get the elected processus")
-	m.startElection()
 	return <- m.chanGiveElection
-}
-
-/**
- * Tells manager to start an election
- */
-func (m *Manager) startElection(){
-	log.Println("Manager : Start election")
-	m.chanAskElection <- true
 }
 
 

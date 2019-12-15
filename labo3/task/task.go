@@ -14,6 +14,7 @@ type Network interface {
 
 type Manager interface {
 	GetElected() uint16
+	RunElection()
 }
 
 /**
@@ -33,6 +34,17 @@ func (t *Task) Run(manager Manager, network Network) {
 	t.shouldRunElection = true
 
 	for {
+
+		log.Println("Task : get the elected processus")
+		t.currentElected = t.m.GetElected()
+		time.Sleep(time.Second * 1)
+		hasAnswered := t.n.EmitEcho(t.currentElected)
+		if !hasAnswered {
+			t.m.RunElection()
+		}
+	}
+/*
+	for {
 		if t.shouldRunElection {
 			log.Println("Task : get the elected processus")
 			t.currentElected = t.m.GetElected()
@@ -45,4 +57,5 @@ func (t *Task) Run(manager Manager, network Network) {
 			}
 		}
 	}
+*/
 }
