@@ -1,6 +1,9 @@
 package task
 
-import "time"
+import (
+	"log"
+	"time"
+)
 
 /**
  * Interface wanted for the Network
@@ -24,12 +27,14 @@ type Task struct {
 }
 
 func (t *Task) Run(manager Manager, network Network) {
+	log.Println("Task : Initialization of the task")
 	t.m = manager
 	t.n = network
 	t.shouldRunElection = true
 
 	for {
 		if t.shouldRunElection {
+			log.Println("Task : get the elected processus")
 			t.currentElected = t.m.GetElected()
 			t.shouldRunElection = false
 		} else { // TODO is it correct?

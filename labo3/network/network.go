@@ -40,6 +40,7 @@ type Network struct {
  * @param N number of processus
  */
 func (n *Network) Init(id uint16, N uint16, manager Manager) {
+	log.Println("Network : Initialization of the network")
 	n.id = id
 	n.N = N
 	n.manager = manager
@@ -85,6 +86,7 @@ func (n *Network) handleConn(conn net.PacketConn) {
 }
 
 func (n *Network) EmitNotif(_map map[uint16]uint16){
+	log.Println("Network : Emit notification : ",_map)
 	notif := messages.MessageNotif{_map}
 	msg := utils.EncodeMessageNotif(notif)
 	buf := utils.InitMessage([]byte(config.NotifMessage),msg)
@@ -92,6 +94,7 @@ func (n *Network) EmitNotif(_map map[uint16]uint16){
 }
 
 func (n *Network) EmitResult(id uint16,_map map[uint16]bool){
+	log.Println("Network : Emit result : id-",id," map-",_map)
 	result := messages.MessageResult{id,_map}
 	msg := utils.EncodeMessageResult(result)
 	buf := utils.InitMessage([]byte(config.ResultMessage),msg)
@@ -99,6 +102,7 @@ func (n *Network) EmitResult(id uint16,_map map[uint16]bool){
 }
 
 func (n *Network) emitACK(conn net.PacketConn, cliAddr net.Addr) {
+	log.Println("Network : Emit ACK")
 	ack := messages.Message{n.id}
 	msg := utils.EncodeMessage(ack)
 	buf := utils.InitMessage([]byte(config.AckMessage),msg)
@@ -109,6 +113,7 @@ func (n *Network) emitACK(conn net.PacketConn, cliAddr net.Addr) {
 }
 
 func (n *Network) EmitEcho(id uint16) bool {
+	log.Println("Network : Emit ECHO : ",n.id)
 	channel := make(chan bool, 1) // channel to know if we received an ACK
 	echo := messages.Message{n.id}
 	msg := utils.EncodeMessage(echo)

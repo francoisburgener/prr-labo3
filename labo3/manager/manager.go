@@ -10,6 +10,8 @@
 */
 package manager
 
+import "log"
+
 /**
  * ENUM declaration of the states
  */
@@ -45,6 +47,7 @@ type Manager struct {
 }
 
 func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
+	log.Println("Manager : Initialization of the manager")
 	m.N = N
 	m.me = me
 	m.aptitude = aptitude
@@ -61,6 +64,7 @@ func (m *Manager) handler() {
 			l := make(map[uint16]uint16)
 			l[m.me] = m.aptitude
 
+			log.Println("Manager : Emit notification")
 			m.network.EmitNotif(l)
 			m.state = NOTIFICATION
 		case notifMap := <- m.chanNotification:
@@ -104,6 +108,7 @@ func (m *Manager) handler() {
 			}
 
 		default:
+			log.Println("Manager : Default")
 			if m.state == RESULT {
 				m.chanGiveElection <- m.elected
 			}
@@ -135,6 +140,7 @@ func (m *Manager) SubmitResult(id uint16, resultMap map[uint16]bool) {
  * Get the elected id
  */
 func (m *Manager) GetElected() uint16 {
+	log.Println("Manager : get the elected processus")
 	m.startElection()
 	return <- m.chanGiveElection
 }
@@ -143,6 +149,7 @@ func (m *Manager) GetElected() uint16 {
  * Tells manager to start an election
  */
 func (m *Manager) startElection(){
+	log.Println("Manager : Start election")
 	m.chanAskElection <- true
 }
 
