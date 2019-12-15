@@ -41,6 +41,7 @@ type Manager struct {
 	aptitude uint16
 	state uint8 // TODO Maybe change this
 	elected uint16
+	debug bool
 	network Network
 	chanAskElection chan bool
 	chanGiveElection chan uint16
@@ -62,6 +63,8 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	m.chanNotification = make(chan map[uint16]uint16)
 	m.chanResult = make(chan ResultMessage)
 
+	// Debug
+	m.debug = true
 
 	go m.handler()
 }
@@ -74,11 +77,17 @@ func (m *Manager) handler() {
 			l := make(map[uint16]uint16)
 			l[m.me] = m.aptitude
 
-			log.Println("Manager : Emit notification")
+			if m.debug {
+				log.Println("Manager : Emit notification")
+			}
+
 			m.network.EmitNotif(l)
 			m.state = NOTIFICATION
 		case notifMap := <- m.chanNotification:
-			log.Println("Manager : Received notification : ",notifMap, " me:",m.me)
+			if m.debug {
+				log.Println("Manager : Received NOTIFICATION ")
+			}
+
 			_, isInside := notifMap[m.me] // Test if I'm here
 			if isInside {
 				m.elected = findMax(notifMap)
@@ -94,6 +103,10 @@ func (m *Manager) handler() {
 				m.state = NOTIFICATION
 			}
 		case resultMessage := <- m.chanResult:
+			if m.debug {
+				log.Println("Manager : Received RESULT, new boss is ", resultMessage.id)
+			}
+
 			i := resultMessage.id
 			resultMap := resultMessage.visitedResult
 
@@ -119,7 +132,9 @@ func (m *Manager) handler() {
 			}
 		default:
 			if m.state == RESULT {
-				log.Println("Manager : Send elected processus")
+				if m.debug {
+					log.Println("Manager : Send elected processus")
+				}
 				m.chanGiveElection <- m.elected
 			}
 		}
@@ -149,7 +164,6 @@ func (m *Manager) SubmitResult(id uint16, resultMap map[uint16]bool) {
  * Tells manager to start an election
  */
 func (m *Manager) RunElection() {
-	log.Println("Manager : Start election")
 	m.chanAskElection <- true
 }
 
@@ -157,7 +171,6 @@ func (m *Manager) RunElection() {
  * Get the elected id
  */
 func (m *Manager) GetElected() uint16 {
-	log.Println("Manager : get the elected processus")
 	return <- m.chanGiveElection
 }
 

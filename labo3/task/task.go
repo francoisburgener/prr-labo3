@@ -23,6 +23,7 @@ type Manager interface {
 type Task struct {
 	currentElected uint16
 	shouldRunElection bool
+	debug bool
 	m Manager
 	n Network
 }
@@ -32,16 +33,31 @@ func (t *Task) Run(manager Manager, network Network) {
 	t.m = manager
 	t.n = network
 	t.shouldRunElection = true
+	t.debug = true
 
+	if t.debug {
+		log.Println("Task : Running an election")
+	}
 	t.m.RunElection()
 
 	for {
+		if t.debug {
+			log.Println("Task : Who's elected?")
+		}
 
-		log.Println("Task : get the elected processus")
 		t.currentElected = t.m.GetElected()
-		log.Println("Task : current elected:",t.currentElected)
+
+		if t.debug {
+			log.Println("Task : elected is ", t.currentElected)
+		}
+
 		hasAnswered := t.n.EmitEcho(t.currentElected)
 		if !hasAnswered {
+			if t.debug {
+				log.Println("Task : no answer :(")
+				log.Println("Task : Running an election")
+			}
+
 			t.m.RunElection()
 		}
 		time.Sleep(time.Second * 1)
