@@ -132,9 +132,9 @@ func (n *Network) EmitEcho(id uint16) bool {
 
 func (n *Network) emit(msg []byte) {
 
-	for i:= n.id + 1; i < n.N + n.id; i++{
+	for i:= n.id; i < n.N + n.id; i++{
 
-		id := i % n.N // id of the next processus
+		id := (i + 1) % n.N // id of the next processus
 		channel := make(chan bool, 1) // channel to know if we received an ACK
 		receivedACK := false //Boolean to stop the loop if we received an ACK
 
