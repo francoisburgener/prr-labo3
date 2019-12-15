@@ -18,8 +18,7 @@ import (
  * ENUM declaration of the states
  */
 const (
-	REST = iota
-	NOTIFICATION
+	NOTIFICATION = iota
 	RESULT
 )
 
@@ -42,6 +41,7 @@ type Manager struct {
 	aptitude uint16
 	state uint8 // TODO Maybe change this
 	elected uint16
+	asked bool
 	network Network
 	chanAskElection chan bool
 	chanGiveElection chan uint16
@@ -55,7 +55,8 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	m.me = me
 	m.aptitude = aptitude
 	m.network = network
-	m.state = REST
+	m.state = RESULT
+	m.asked = false
 
 	//Channels
 	m.chanAskElection = make(chan bool)
@@ -78,6 +79,7 @@ func (m *Manager) handler() {
 			log.Println("Manager : Emit notification")
 			m.network.EmitNotif(l)
 			m.state = NOTIFICATION
+			m.asked = true
 		case notifMap := <- m.chanNotification:
 			_, isInside := notifMap[m.me] // Test if I'm here
 			if isInside {
@@ -119,9 +121,10 @@ func (m *Manager) handler() {
 			}
 		default:
 			log.Println("Manager : Default")
-			if m.state == RESULT {
+			if m.state == RESULT && m.asked == true {
 				log.Println("Manager : Send elected processus")
 				m.chanGiveElection <- m.elected
+				m.asked = false
 			}
 		}
 	}
