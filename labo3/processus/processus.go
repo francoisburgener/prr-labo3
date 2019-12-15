@@ -1,6 +1,7 @@
 package processus
 
 import (
+	"log"
 	"math/rand"
 	"prr-labo3/labo3/manager"
 	"prr-labo3/labo3/network"
@@ -9,7 +10,7 @@ import (
 
 const (
 	stampMax = 50
-	stampMin = 1
+	stampMin = 1 // TODO not a stamp
 )
 
 type Processus struct {
@@ -23,13 +24,17 @@ type Processus struct {
 func (p *Processus)Init(id uint16, N uint16)  {
 	p.id = id
 	p._N = N
-	p.network = network.Network{}
+	p.network = network.Network{
+		Debug: false,
+	}
 	p.manager = manager.Manager{}
 	p.task = task.Task{}
 
 	// Ensures everyone has a different seed
 	rand.Seed(int64(id + N))
 	aptitude := uint16(rand.Intn(stampMax - stampMin + 1) + stampMin)
+
+	log.Println("Aptitude is ", aptitude)
 
 	p.network.Init(p.id,p._N,&p.manager)
 	p.manager.Init(p._N,p.id,aptitude,&p.network)

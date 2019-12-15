@@ -41,6 +41,7 @@ type Manager struct {
 	aptitude uint16
 	state uint8 // TODO Maybe change this
 	elected uint16
+	asked bool
 	debug bool
 	network Network
 	chanAskElection chan bool
@@ -56,6 +57,7 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	m.aptitude = aptitude
 	m.network = network
 	m.state = RESULT
+	m.asked = false
 
 	//Channels
 	m.chanAskElection = make(chan bool)
@@ -131,10 +133,11 @@ func (m *Manager) handler() {
 				m.state = RESULT
 			}
 		default:
-			if m.state == RESULT {
+			if m.state == RESULT && m.asked {
 				if m.debug {
 					log.Println("Manager : Send elected processus")
 				}
+				m.asked = false
 				m.chanGiveElection <- m.elected
 			}
 		}
@@ -171,6 +174,7 @@ func (m *Manager) RunElection() {
  * Get the elected id
  */
 func (m *Manager) GetElected() uint16 {
+	m.asked = true
 	return <- m.chanGiveElection
 }
 
