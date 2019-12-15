@@ -10,7 +10,9 @@
 */
 package manager
 
-import "log"
+import (
+	"log"
+)
 
 /**
  * ENUM declaration of the states
@@ -54,6 +56,14 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	m.aptitude = aptitude
 	m.network = network
 	m.state = REST
+
+	//Channels
+	m.chanAskElection = make(chan bool)
+	m.chanGiveElection = make(chan uint16)
+	m.chanNotification = make(chan map[uint16]uint16)
+	m.chanResult = make(chan ResultMessage)
+
+
 	go m.handler()
 }
 
@@ -107,13 +117,12 @@ func (m *Manager) handler() {
 				m.network.EmitResult(m.elected,resultMap)
 				m.state = RESULT
 			}
-
 		default:
 			log.Println("Manager : Default")
 			if m.state == RESULT {
+				log.Println("Manager : Send elected processus")
 				m.chanGiveElection <- m.elected
 			}
-
 		}
 	}
 }

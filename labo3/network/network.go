@@ -122,11 +122,10 @@ func (n *Network) EmitEcho(id uint16) bool {
 	go n.emitById(buf,id,channel)
 
 	select {
-	case receivedACK := <-channel: //We received an ACK
-		fmt.Println("Received ACK",receivedACK)
+	case <-channel: //We received an ACK
 		return true
 	case <-time.After(config.TIME_OUT): // Timeout
-		fmt.Println("Timeout")
+		log.Println("Network : Timeout")
 		return false
 	}
 }
@@ -145,9 +144,8 @@ func (n *Network) emit(msg []byte) {
 
 		select {
 		case receivedACK = <-channel: //We received an ACK
-			fmt.Println("Received ACK")
 		case <-time.After(config.TIME_OUT): // Timeout
-			fmt.Println("Timeout")
+			fmt.Println("Network : Timeout")
 			continue
 		}
 

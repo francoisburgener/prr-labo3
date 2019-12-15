@@ -39,6 +39,7 @@ func (t *Task) Run(manager Manager, network Network) {
 			t.shouldRunElection = false
 		} else { // TODO is it correct?
 		time.Sleep(time.Second * 1)
+			log.Println("Task : Emit Echo")
 			if t.n.EmitEcho(t.currentElected) == false {
 				t.shouldRunElection = true
 			}
