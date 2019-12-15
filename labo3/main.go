@@ -6,17 +6,19 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"prr-labo3/labo3/manager"
 	"prr-labo3/labo3/network"
+	"prr-labo3/labo3/processus"
 	"strconv"
 )
 
 func main() {
 	id,N := argValue()
-	n := network.Network{}
+	process := processus.Processus{}
+	process.Init(id,N)
+	/*n := network.Network{}
 	m := manager.Manager{}
 	n.Init(id,N,&m)
-	console(&n)
+	console(&n)*/
 }
 
 func argValue() (uint16, uint16) {
@@ -69,7 +71,7 @@ func console(n *network.Network) {
 		case "2":
 			n.EmitResult(1,m2)
 		case "3":
-			n.EmitEcho()
+			n.EmitEcho(1)
 		default:
 			fmt.Println("Choose 1 or 2")
 		}
