@@ -1,11 +1,11 @@
 /*
  -----------------------------------------------------------------------------------
  Lab 		 : 03
- File    	 : config.go
+ File    	 : manager.go
  Authors   	 : François Burgener - Tiago P. Quinteiro
  Date        : 10.12.19
 
- Goal        : TODO
+ Goal        : Implements the manager for the bully algorithm of Chang and Roberts
  -----------------------------------------------------------------------------------
 */
 package manager
@@ -30,16 +30,24 @@ type Network interface {
 	EmitResult(uint16, map[uint16]bool)
 }
 
-type ResultMessage struct {
+/**
+ * private utility struct
+ * to send through channels
+ * a result message
+ */
+type resultMessage struct {
 	id uint16
 	visitedResult map[uint16]bool
 }
 
+/**
+ * Manager class
+ */
 type Manager struct {
 	N uint16
 	me uint16
 	aptitude uint16
-	state uint8 // TODO Maybe change this
+	state uint8
 	elected uint16
 	asked bool
 	debug bool
@@ -47,7 +55,7 @@ type Manager struct {
 	chanAskElection chan bool
 	chanGiveElection chan uint16
 	chanNotification chan map[uint16]uint16
-	chanResult chan ResultMessage
+	chanResult chan resultMessage
 	chanAsk chan bool
 }
 
@@ -71,7 +79,7 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	m.chanAskElection = make(chan bool)
 	m.chanGiveElection = make(chan uint16)
 	m.chanNotification = make(chan map[uint16]uint16)
-	m.chanResult = make(chan ResultMessage)
+	m.chanResult = make(chan resultMessage)
 	m.chanAsk = make(chan bool)
 
 	// Debug
@@ -119,7 +127,7 @@ func (m *Manager) SubmitNotification(notifMap map[uint16]uint16) {
  * Submits a result message to manager from network
  */
 func (m *Manager) SubmitResult(id uint16, resultMap map[uint16]bool) {
-	m.chanResult <- ResultMessage{
+	m.chanResult <- resultMessage{
 		id:            id,
 		visitedResult: resultMap,
 	}
@@ -148,8 +156,7 @@ func (m *Manager) GetElected() uint16 {
  * Runs an election
  */
 func (m *Manager) handleElection() {
-	l := make(map[uint16]uint16)
-	l[m.me] = m.aptitude
+	l := m.createNewMap()
 	m.sendNotification(l)
 }
 
@@ -174,9 +181,9 @@ func (m *Manager) handleNotification(notifMap map[uint16]uint16) {
 
 /**
  * Handles a Result request
- * @param ResultMessage
+ * @param resultMessage
  */
-func (m *Manager) handleResult(resultMessage ResultMessage) {
+func (m *Manager) handleResult(resultMessage resultMessage) {
 	if m.debug {
 		log.Println("Manager : Received RESULT, new boss is ", resultMessage.id)
 	}
@@ -188,8 +195,7 @@ func (m *Manager) handleResult(resultMessage ResultMessage) {
 	if isInside {
 		// Nothing to do ¯\_(ツ)_/¯
 	} else if m.state == RESULT && m.elected != i {
-		l := make(map[uint16]uint16)
-		l[m.me] = m.aptitude
+		l := m.createNewMap()
 
 		m.sendNotification(l)
 	} else if m.state == NOTIFICATION {
@@ -200,6 +206,7 @@ func (m *Manager) handleResult(resultMessage ResultMessage) {
 
 /**
  * Calls network and emit notification
+ * @param map of ids and aptitudes
  */
 func (m *Manager) sendNotification(_map map[uint16]uint16) {
 	m.network.EmitNotif(_map)
@@ -210,14 +217,21 @@ func (m *Manager) sendNotification(_map map[uint16]uint16) {
  * Calls network and emit result
  */
 func (m *Manager) sendResult() {
-	// TODO this code is similar to another
 	resultMap := make(map[uint16]bool)
-	resultMap[m.me] = true // TODO Could be void struct.
+	resultMap[m.me] = true
 
 	m.network.EmitResult(m.elected,resultMap)
 	m.state = RESULT
 }
 
+/**
+ *
+ */
+func (m *Manager) createNewMap() map[uint16]uint16 {
+	l := make(map[uint16]uint16)
+	l[m.me] = m.aptitude
+	return l
+}
 
 /**
  * Utility function to find max
