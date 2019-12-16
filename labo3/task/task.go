@@ -62,19 +62,4 @@ func (t *Task) Run(manager Manager, network Network) {
 		}
 		time.Sleep(time.Second * 1)
 	}
-/*
-	for {
-		if t.shouldRunElection {
-			log.Println("Task : get the elected processus")
-			t.currentElected = t.m.GetElected()
-			t.shouldRunElection = false
-		} else { // TODO is it correct?
-		time.Sleep(time.Second * 1)
-			log.Println("Task : Emit Echo")
-			if t.n.EmitEcho(t.currentElected) == false {
-				t.shouldRunElection = true
-			}
-		}
-	}
-*/
 }

@@ -6,11 +6,13 @@
 
 ### Objectifs
 
-TODO
+* Comprendre le fonctionnement d'un algorithme d'élection avec pannes.
+* Utiliser l'algorithme de Chang et Roberts avec pannes de processus pour déterminer le processus de meilleure aptitude parmi un ensemble de processus.
+* Réaliser des communications UDP ou TCP en langage Go
 
 ### Énnoncé du problème
 
-> TODO
+> Réalisez un programme en langage GO qui implémente l'algorithme d'élection de Chang et Roberts avec pannes possibles des processus que nous avons vu en classe. Pour ce faire, nous avons des processus qui, de temps en temps, interrogent le dernier site élu, et si celui-ci n'est plus opérationnel, une élection est démarrée. Un processus en panne doit pouvoir se réinsérer au sein de l'anneau lors de sa reprise.
 
 ## Comment démarrer
 
@@ -54,84 +56,79 @@ go run main.go -proc 2 -N 3
 
 ### Prise en main
 
-Il est possible d'activer un mode debug dans `processus` pour le mutex OU le network (au choix). Ceci facilitera l'analyse de l'exécution.
+Il est possible d'activer un mode debug dans `processus` pour le manager, le network ou task (au choix). Ceci facilitera l'analyse de l'exécution.
 
 ## Travail réalisé
 
-Afin de réaliser un meilleur découpage de notre code que le laboratoire précédent, nous avons répartit en deux struct notre code. Afin d'éviter de polluer l'espace global avec des chanels innombrables, nous avons encapsulés ceux-ci à l'intérieur de méthodes afin de fournir une API concise et clair.
-
-### Mutex
-
-#### Api disponible
-
-Client
-
-| Méthode     |                                                              |
-| ----------- | ------------------------------------------------------------ |
-| Init        | "Constructeur": initialise le mutex et ses valeurs internes  |
-| Ask         | Prépare l'entrée en section critique en démarrant les appels aux autres mutex |
-| Wait        | Attente bloquante sur la disponibilité de la ressource critique |
-| End         | Libère la ressource critique                                 |
-| GetResource | Obtient la valeur de la ressource critique                   |
-| Update      | Permet de mettre à jour la valeur                            |
-
-Réseau
-
-| Méthode |                                        |
-| ------- | -------------------------------------- |
-| Req     | Accepte une requête (depuis le réseau) |
-| Ok      | Accepte un "OK"                        |
-| Update  | Accepte un update                      |
-
-#### En détails
-
-Lorsque l'on va initier notre Mutex, une goroutine va se démarrer avec la méthode `manager`. Cette méthode attend sur la réception de chanels et traite les demande entrantes. 
-
-Cas échéant, il est capable de transmettre et déléguer à un objet implémentant l'interface `Networker` ce qui doit se faire sur le réseau.
-
-### Network
+### Task
 
 #### Api disponible
 
 | Méthode |                                                              |
 | ------- | ------------------------------------------------------------ |
-| Init    | Initialise le network. Prépare des dials et des accept => À la fin on se retrouve avec une (et une seule) connexion par pair de noeuds |
-| REQ     | Transmet une requête à un autre processus réseau             |
-| OK      | Transmet un OK à un autre processus réseau                   |
-| UPDATE  | Transmet une mise à jour de la valeur protégée en section critique à tous les processus |
+| Run     | Démarre la tâche applicative. Elle va se charger d'émettre les echo OU tenter de lancer une élection si nécessaire. |
+
+### Manager
+
+Comme notre code est en anglais, nous avons utilisé "notification" à la place d'annonce.
+
+#### Api disponible
+
+Client
+
+| Méthode     |                                            |
+| ----------- | ------------------------------------------ |
+| Init        | "Constructeur": initialise la structure    |
+| RunElection | Prépare une élection à soumettre au réseau |
+| GetElected  | Obtient l'id du dernier processus élu      |
+
+Réseau
+
+| Méthode            |                                               |
+| ------------------ | --------------------------------------------- |
+| SubmitNotification | Traîte la réception d'une requête d'annonce   |
+| SubmitResult       | Traîte la réception d'une requête de résultat |
 
 #### En détails
 
-Lors de l'initialisation, nous devons établir les connexions TCP entre chaque noeud. On va commencer par faire une boucle de Dial sur chaque autre processus distant. Dans le cas d'un échec, la connexion sera établie à posteriori via un Accept. Chaque connexion est stockée dans `directory` qui est une map de `net.Conn`.
+On commence par démarrer le manager en appelant `Init()` puis, le network et task peuvent appeler les méthodes fournies par l'API. 
 
-Une fois cette première étape terminée, notre partie client s'exécute.
+Un Handler traîtera les demandes entrantes dans une goroutine `go handler()`. 
 
-Lorsque c'est nécessaire, il délégue les opérations à un objet implémentant l'interface Mutex.
+### Network
+
+#### Api disponible
+
+| Méthode    |                                                              |
+| ---------- | ------------------------------------------------------------ |
+| Init       | "Constructeur": initialise la structure                      |
+| EmitNotif  | Envoie un message d'annonce au premier processus suivant trouvé |
+| EmitResult | Envoie un message de résultat au premier processus suivant trouvé |
+| EmitEcho   | Appelé par la tâche applicative pour émettre un echo         |
+
+#### En détails
+
+Lorsque l'on doit émettre un message au suivant, notre algorithme va boucler comme ceci:
+
+```
+Pour N processus 
+avec k étant l'id de ce processus
+on itère de k+1 jusqu'à k+N-1 % N
+```
+
+Si dans notre boucle, on obtient à nouveau l'id k (notre propre id), alors on sait qu'on est le seul processus actif dans le réseau.
+
+La condition de passage d'un processus j à un processus j+1 est basée sur un timeout de 2T. Où T vaut 1s. Paramétrable dans `config.go`.
 
 ### protocole
 
-| Message | Format              | Taille          |
-| ------- | ------------------- | --------------- |
-| Req     | [REQ {Stamp} {Id} ] | 3 + 4 + 2 bytes |
-| Ok      | [OK_ {Stamp} {Id} ] | 3 + 4 + 2 bytes |
-| Update  | [UPD {value} ]      | 3 + 4 bytes     |
-
-Les messages sont terminés par des `\n`
-
-### Autre
-
-Le point d'entrée `main.go` représente notre client. Dans notre partie client, nous avons un simple programme en lignes de commandes qui accepte trois commandes:
-
-1. Lire
-2. Update
-   1. Entréer une valeur numérique naturelle
-3. Quitter
-
-Le package `processus` contient une struct qui permet d'initialiser facielement le mutex et le network (étant donné qu'ils ont des valeurs communes).
-
-Le package `config`permet de configurer certains aspects du programme (constantes).
+| Type du Message | Format                                       | Quoi         |
+| --------------- | -------------------------------------------- | ------------ |
+| NOT             | < NOT MessageNotif{ map[uint16]uint16 } >    | Annonce      |
+| RES             | < RES MessageResult{ id, map[uint16]bool } > | Résultat     |
+| ACK             | < ACK Message{id} >                          | Acquittement |
+| ECH             | < ECH Message{id} >                          | Echo         |
 
 ## Améliorations
 
-- Actuellement, notre partie network ne nécessite pas un ordre particulier. En revanche, si on lance en simultané les processus, il est possible qu'ils se bloquent les deux en Accept. Nous sommes contraints de les démarrer séquentiellement, peu importe l'ordre.
-- Actuellement, nous effectuons des logs selon une variable Debug séparament entre Mutex et Network. Nous pourrions rediriger le stdout vers un fichier ou autre chose afin de faciliter la lisibilité.
+* On pourrait limiter le nombre de messages transmis avec un algorithme de détection de suivant plus intelligent.
