@@ -5,7 +5,7 @@
  Authors   	 : François Burgener - Tiago P. Quinteiro
  Date        : 10.12.19
 
- Goal        : ...
+ Goal        :  Network layer for the algorithm of chang and robert (bully)
  -----------------------------------------------------------------------------------
 */
 
@@ -85,6 +85,10 @@ func (n *Network) handleConn(conn net.PacketConn) {
 	}
 }
 
+/**
+ * Method to emit a notification
+ * @param _map with all processus and this aptitude
+ */
 func (n *Network) EmitNotif(_map map[uint16]uint16){
 	notif := messages.MessageNotif{_map}
 	msg := utils.EncodeMessageNotif(notif)
@@ -96,6 +100,11 @@ func (n *Network) EmitNotif(_map map[uint16]uint16){
 	}
 }
 
+/**
+ * Method to emit a result
+ * @param id processus who is elected
+ * @param _map of processus who send the result
+ */
 func (n *Network) EmitResult(id uint16,_map map[uint16]bool){
 	result := messages.MessageResult{id,_map}
 	msg := utils.EncodeMessageResult(result)
@@ -107,6 +116,11 @@ func (n *Network) EmitResult(id uint16,_map map[uint16]bool){
 	}
 }
 
+/**
+ * Method to emit a ACK
+ * @param conn conn of the client
+ * @param cliAddr address of the client
+ */
 func (n *Network) emitACK(conn net.PacketConn, cliAddr net.Addr) {
 	ack := messages.Message{n.id}
 	msg := utils.EncodeMessage(ack)
@@ -121,6 +135,11 @@ func (n *Network) emitACK(conn net.PacketConn, cliAddr net.Addr) {
 	}
 }
 
+/**
+ * Method to emit an ECHO
+ * @param id of the processus we want to send
+ * @return true if we received an ACK, false otherwise
+ */
 func (n *Network) EmitEcho(id uint16) bool {
 	channel := make(chan bool, 1) // channel to know if we received an ACK
 	echo := messages.Message{n.id}
@@ -142,6 +161,10 @@ func (n *Network) EmitEcho(id uint16) bool {
 	}
 }
 
+/**
+ * Method to emit an message of our next processus (Id + 1) with we can we try another (id + 2) ect
+ * @param msg we want to send
+ */
 func (n *Network) emit(msg []byte) {
 
 	for i:= n.id; i < n.N + n.id; i++{
@@ -168,6 +191,12 @@ func (n *Network) emit(msg []byte) {
 	}
 }
 
+/**
+ * Method to emit an message
+ * @param msg we want to send
+ * @param id of the processus we want to send
+ * @param channel to say if we received ACK
+ */
 func (n *Network) emitById(msg []byte,id uint16, channel chan bool) {
 	add := utils.AddressByID(id)
 	addr,err := net.ResolveUDPAddr("udp",add)
@@ -190,7 +219,11 @@ func (n *Network) emitById(msg []byte,id uint16, channel chan bool) {
 }
 
 
-
+/**
+ * Method to read an ACK message
+ * @param conn to read the ack
+ * @param channel to say if we received ACK
+ */
 func (n *Network) readACK(conn net.Conn, channel chan bool){
 	// Make a buffer to hold incoming data.
 	buf := make([]byte, 1024)
@@ -217,6 +250,10 @@ func (n *Network) readACK(conn net.Conn, channel chan bool){
 	}
 }
 
+/**
+ * Method to read decode a message
+ * @param buf  array of byte we want to decode
+ */
 func (n *Network) decodeMessage(buf []byte) {
 
 	_type := string(buf[0:3])

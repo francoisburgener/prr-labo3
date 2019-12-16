@@ -1,3 +1,13 @@
+/*
+ -----------------------------------------------------------------------------------
+ Lab 		 : 03
+ File    	 : network.go
+ Authors   	 : François Burgener - Tiago P. Quinteiro
+ Date        : 10.12.19
+
+ Goal        : Creates instances of network, manager and task
+ -----------------------------------------------------------------------------------
+*/
 package processus
 
 import (
