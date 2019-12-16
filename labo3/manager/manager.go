@@ -51,6 +51,13 @@ type Manager struct {
 	chanAsk chan bool
 }
 
+/**
+ * Constructor
+ * @param N number of Processes
+ * @param me id of this Process
+ * @param aptitude the aptitude of this Process
+ * @param network a struct which represents the network layer
+ */
 func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	log.Println("Manager : Initialization of the manager")
 	m.N = N
@@ -143,17 +150,12 @@ func (m *Manager) GetElected() uint16 {
 func (m *Manager) handleElection() {
 	l := make(map[uint16]uint16)
 	l[m.me] = m.aptitude
-
-	if m.debug {
-		log.Println("Manager : Emit notification")
-	}
-
-	m.network.EmitNotif(l)
-	m.state = NOTIFICATION
+	m.sendNotification(l)
 }
 
 /**
  * Handles a Notification request
+ * @param notifMap map of id and aptitudes
  */
 func (m *Manager) handleNotification(notifMap map[uint16]uint16) {
 	if m.debug {
@@ -163,19 +165,17 @@ func (m *Manager) handleNotification(notifMap map[uint16]uint16) {
 	_, isInside := notifMap[m.me] // Test if I'm here
 	if isInside {
 		m.elected = findMax(notifMap)
-
-		resultMap := make(map[uint16]bool)
-		resultMap[m.me] = true // TODO Could be void struct.
-
-		m.network.EmitResult(m.elected,resultMap)
-		m.state = RESULT
+		m.sendResult()
 	} else {
 		notifMap[m.me] = m.aptitude // Add myself in map
-		m.network.EmitNotif(notifMap)
-		m.state = NOTIFICATION
+		m.sendNotification(notifMap)
 	}
 }
 
+/**
+ * Handles a Result request
+ * @param ResultMessage
+ */
 func (m *Manager) handleResult(resultMessage ResultMessage) {
 	if m.debug {
 		log.Println("Manager : Received RESULT, new boss is ", resultMessage.id)
@@ -188,22 +188,34 @@ func (m *Manager) handleResult(resultMessage ResultMessage) {
 	if isInside {
 		// Nothing to do ¯\_(ツ)_/¯
 	} else if m.state == RESULT && m.elected != i {
-		// TODO this code is similar to another
 		l := make(map[uint16]uint16)
 		l[m.me] = m.aptitude
 
-		m.network.EmitNotif(l)
-		m.state = NOTIFICATION
+		m.sendNotification(l)
 	} else if m.state == NOTIFICATION {
 		m.elected = i
-
-		// TODO this code is similar to another
-		resultMap := make(map[uint16]bool)
-		resultMap[m.me] = true // TODO Could be void struct.
-
-		m.network.EmitResult(m.elected,resultMap)
-		m.state = RESULT
+		m.sendResult()
 	}
+}
+
+/**
+ * Calls network and emit notification
+ */
+func (m *Manager) sendNotification(_map map[uint16]uint16) {
+	m.network.EmitNotif(_map)
+	m.state = NOTIFICATION
+}
+
+/**
+ * Calls network and emit result
+ */
+func (m *Manager) sendResult() {
+	// TODO this code is similar to another
+	resultMap := make(map[uint16]bool)
+	resultMap[m.me] = true // TODO Could be void struct.
+
+	m.network.EmitResult(m.elected,resultMap)
+	m.state = RESULT
 }
 
 
