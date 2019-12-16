@@ -23,8 +23,22 @@ Nous avons 3 manières de lancer notre projet. Via deux script, windows et linux
 Pour lancer le script il faut aller dans le dossier labo3 ``prr-labo3/labo3`` et de lancer le script ``startWindows.bat``
 
 ```
-$ ./startWindows.bat <nombre de processus>
+$ ./startWindows.bat <nombre de processus> <liste aptitude>
 ```
+
+**Example**
+
+```
+$ ./startWindows.bat 5 8 19 3 1 6
+```
+
+Cela va lancer 5 processus ou le processus :
+
+- 0 aura l'aptitude 8
+- 1 aura l'aptitude 19
+- 2 aura l'aptitude 3
+- 3 aura l'aptitude 1
+- 4 aura l'aptitude 6
 
 ### Linux
 
@@ -41,7 +55,7 @@ $ ./startLinux.sh <nombre de processus>
 Pour lancer en ligne de commande il faudra tout d'abords aller dans le dossier ``PRR-Labo2/labo2`` et exécuter la ligne suivante dans différent terminal
 
 ```
-go run main.go -proc <id du processus> -N <nombre de processus>
+go run main.go -proc <id du processus> -N <nombre de processus> -apt <apt du processus>
 ```
 
 Les id des processus commencent à **0**
