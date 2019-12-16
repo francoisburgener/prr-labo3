@@ -48,6 +48,7 @@ type Manager struct {
 	chanGiveElection chan uint16
 	chanNotification chan map[uint16]uint16
 	chanResult chan ResultMessage
+	chanAsk chan bool
 }
 
 func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
@@ -64,6 +65,7 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	m.chanGiveElection = make(chan uint16)
 	m.chanNotification = make(chan map[uint16]uint16)
 	m.chanResult = make(chan ResultMessage)
+	m.chanAsk = make(chan bool)
 
 	// Debug
 	m.debug = true
@@ -71,67 +73,20 @@ func (m *Manager) Init(N uint16, me uint16, aptitude uint16, network Network) {
 	go m.handler()
 }
 
-
+/**
+ * Once Init, this handler will treat incoming requests
+ * from Task and Network
+ */
 func (m *Manager) handler() {
 	for {
 		select {
 		case <- m.chanAskElection:
-			l := make(map[uint16]uint16)
-			l[m.me] = m.aptitude
-
-			if m.debug {
-				log.Println("Manager : Emit notification")
-			}
-
-			m.network.EmitNotif(l)
-			m.state = NOTIFICATION
+			m.handleElection()
 		case notifMap := <- m.chanNotification:
-			if m.debug {
-				log.Println("Manager : Received NOTIFICATION ")
-			}
-
-			_, isInside := notifMap[m.me] // Test if I'm here
-			if isInside {
-				m.elected = findMax(notifMap)
-
-				resultMap := make(map[uint16]bool)
-				resultMap[m.me] = true // TODO Could be void struct.
-
-				m.network.EmitResult(m.elected,resultMap)
-				m.state = RESULT
-			} else {
-				notifMap[m.me] = m.aptitude // Add myself in map
-				m.network.EmitNotif(notifMap)
-				m.state = NOTIFICATION
-			}
+			m.handleNotification(notifMap)
 		case resultMessage := <- m.chanResult:
-			if m.debug {
-				log.Println("Manager : Received RESULT, new boss is ", resultMessage.id)
-			}
-
-			i := resultMessage.id
-			resultMap := resultMessage.visitedResult
-
-			_, isInside := resultMap[m.me] // Test if I'm here
-			if isInside {
-				// Nothing to do ¯\_(ツ)_/¯
-			} else if m.state == RESULT && m.elected != i {
-				// TODO this code is similar to another
-				l := make(map[uint16]uint16)
-				l[m.me] = m.aptitude
-
-				m.network.EmitNotif(l)
-				m.state = NOTIFICATION
-			} else if m.state == NOTIFICATION {
-				m.elected = i
-
-				// TODO this code is similar to another
-				resultMap := make(map[uint16]bool)
-				resultMap[m.me] = true // TODO Could be void struct.
-
-				m.network.EmitResult(m.elected,resultMap)
-				m.state = RESULT
-			}
+			m.handleResult(resultMessage)
+		case m.asked = <- m.chanAsk:
 		default:
 			if m.state == RESULT && m.asked {
 				if m.debug {
@@ -144,7 +99,7 @@ func (m *Manager) handler() {
 	}
 }
 
-// API
+// API for network
 
 /**
  * Submits a Notification message to manager from network
@@ -163,6 +118,8 @@ func (m *Manager) SubmitResult(id uint16, resultMap map[uint16]bool) {
 	}
 }
 
+// API for Task
+
 /**
  * Tells manager to start an election
  */
@@ -174,12 +131,84 @@ func (m *Manager) RunElection() {
  * Get the elected id
  */
 func (m *Manager) GetElected() uint16 {
-	m.asked = true
+	m.chanAsk <- true
 	return <- m.chanGiveElection
+}
+
+// Privates
+
+/**
+ * Runs an election
+ */
+func (m *Manager) handleElection() {
+	l := make(map[uint16]uint16)
+	l[m.me] = m.aptitude
+
+	if m.debug {
+		log.Println("Manager : Emit notification")
+	}
+
+	m.network.EmitNotif(l)
+	m.state = NOTIFICATION
+}
+
+/**
+ * Handles a Notification request
+ */
+func (m *Manager) handleNotification(notifMap map[uint16]uint16) {
+	if m.debug {
+		log.Println("Manager : Received NOTIFICATION ")
+	}
+
+	_, isInside := notifMap[m.me] // Test if I'm here
+	if isInside {
+		m.elected = findMax(notifMap)
+
+		resultMap := make(map[uint16]bool)
+		resultMap[m.me] = true // TODO Could be void struct.
+
+		m.network.EmitResult(m.elected,resultMap)
+		m.state = RESULT
+	} else {
+		notifMap[m.me] = m.aptitude // Add myself in map
+		m.network.EmitNotif(notifMap)
+		m.state = NOTIFICATION
+	}
+}
+
+func (m *Manager) handleResult(resultMessage ResultMessage) {
+	if m.debug {
+		log.Println("Manager : Received RESULT, new boss is ", resultMessage.id)
+	}
+
+	i := resultMessage.id
+	resultMap := resultMessage.visitedResult
+
+	_, isInside := resultMap[m.me] // Test if I'm here
+	if isInside {
+		// Nothing to do ¯\_(ツ)_/¯
+	} else if m.state == RESULT && m.elected != i {
+		// TODO this code is similar to another
+		l := make(map[uint16]uint16)
+		l[m.me] = m.aptitude
+
+		m.network.EmitNotif(l)
+		m.state = NOTIFICATION
+	} else if m.state == NOTIFICATION {
+		m.elected = i
+
+		// TODO this code is similar to another
+		resultMap := make(map[uint16]bool)
+		resultMap[m.me] = true // TODO Could be void struct.
+
+		m.network.EmitResult(m.elected,resultMap)
+		m.state = RESULT
+	}
 }
 
 
 /**
+ * Utility function to find max
  * @param m Map where you want to find max
  */
 func findMax (m map[uint16]uint16) uint16 {
