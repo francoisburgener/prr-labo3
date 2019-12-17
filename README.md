@@ -16,7 +16,7 @@
 
 ## Comment démarrer
 
-Nous avons 3 manières de lancer notre projet. Via deux script, windows et linux, ou alors via ligne de commande
+Nous avons 3 manières de lancer notre projet. Via deux script, windows  ou alors via ligne de commande
 
 ### Windows
 
@@ -39,16 +39,6 @@ Cela va lancer 5 processus ou le processus :
 - 2 aura l'aptitude 3
 - 3 aura l'aptitude 1
 - 4 aura l'aptitude 6
-
-### Linux
-
-Pour utiliser le script sur linux, il vous faut avoir le terminal gnome-terminal. Si vous ne l'avais pas, vous pourrait lancer chacun des processus via ligne de commande.
-
-Pour lancer le script il faut aller dans le dossier labo2 ``prr-labo3/labo3`` et de lancer le script ``startLinux.sh``
-
-```
-$ ./startLinux.sh <nombre de processus>
-```
 
 ### Ligne de commande
 
